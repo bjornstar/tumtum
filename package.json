@@ -1,0 +1,29 @@
+{
+    "name": "tumtum",
+    "description": "Some sort of tumblr app.",
+    "version": "0.0.1",
+    "author": "Bjorn Stromberg <bjorn@bjornstar.com>",
+    "maintainers": [{
+        "name": "Bjorn Stromberg",
+        "email": "bjorn@bjornstar.com",
+        "twitter": "@bjornstar"
+    }],
+    "main": "tumtum.js",
+    "dependencies": {
+        "tumblr.js": "*",
+        "oauth": "*",
+        "express": "*"
+    },
+    "license": {
+        "type": "MIT",
+        "url": "https://github.com/bjornstar/tumtum/raw/master/LICENSE"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bjornstar/tumtum.git"
+    },
+    "bugs" : {
+        "url" : "http://github.com/bjornstar/tumtum/issues"
+    }
+}
+
