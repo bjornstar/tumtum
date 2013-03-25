@@ -21,6 +21,13 @@ app.use(express.session({
 	secret: config.sessionSecret || 'the default session secret.'
 }));
 
+function checkOAuth(req, res, next) {
+	if (!req.session.oauth || !req.session.oauth.accessToken) {
+		return res.redirect('/');
+	}
+	return next();
+}
+
 app.get('/', function (req, res) {
 	if (!req.session.oauth || !req.session.oauth.accessToken) {
 		return res.redirect('/tumblr_login');
@@ -66,8 +73,21 @@ app.get('/tumblr_cb', function (req, res) {
 	});
 });
 
-app.get('/dashboard', function (req, res) {
-	res.send(200, 'Welcome to tumtum.');
+function getTumblrClient(oauth) {
+	return new tumblr.createClient({
+		consumer_key: config.consumerKey,
+		consumer_secret: config.consumerSecret,
+		token: oauth.accessToken,
+		token_secret: oauth.accessTokenSecret
+	});
+}
+
+app.get('/dashboard', checkOAuth, function (req, res) {
+	var client = getTumblrClient(req.session.oauth);
+
+	client.userInfo(function (error, data) {
+		res.send(200, 'Welcome to tumtum, ' + data.user.name + '.');
+	});
 });
 
 
