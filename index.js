@@ -8,6 +8,8 @@ var ACCESS_TOKEN_URL = "http://www.tumblr.com/oauth/access_token";
 
 var config = require('./config.json');
 
+var oa = new OAuth(REQUEST_TOKEN_URL, ACCESS_TOKEN_URL, config.consumerKey, config.consumerSecret, '1.0', null, 'HMAC-SHA1');
+
 var client;
 
 var app = express();
@@ -20,52 +22,54 @@ app.use(express.session({
 }));
 
 app.get('/', function (req, res) {
-	if (!req.session.oauth_access_token) {
+	if (!req.session.oauth || !req.session.oauth.accessToken) {
 		return res.redirect('/tumblr_login');
 	}
 	return res.redirect('dashboard');
 });
 
 app.get('/tumblr_login', function (req, res) {
-	var oa = new OAuth(REQUEST_TOKEN_URL, ACCESS_TOKEN_URL, config.consumerKey, config.consumerSecret, '1.0', null, 'HMAC-SHA1');
 	oa.getOAuthRequestToken(function (error, requestToken, requestTokenSecret, requestResults) {
 		if (error) {
 			console.log('OAuthRequest Error:', error);
 			return res.send(500, 'Something went horribly wrong with OAuthRequest.');
 		}
 
-		console.log('requestResults', requestResults);
+		req.session.oauth = {
+			requestToken: requestToken,
+			requestTokenSecret: requestTokenSecret
+		};
 
-		oa.getOAuthAccessToken(requestToken, requestTokenSecret, function (error, accessToken, accessTokenSecret, accessResults) {
-			if (error) {
-				console.log('OAuthAccess Error:', error);
-				return res.send(500, 'Something went horribly wrong with OAuthAccess.');
-			}
-
-			client = tumblr.createClient({
-				consumer_key: config.consumerKey,
-				consumer_secret: config.consumerSecret,
-				token: accessToken,
-				token_secret: accessTokenSecret
-			});
-
-			client.userInfo(function (err, data) {
-				if (err) {
-					console.log('TumblrClient Error:', err);
-					return res.send(500, 'Something went horribly wrong with TumblrClient.');
-				}
-
-				var out = '';
-
-				data.blogs.forEach(function (blog) {
-					out.concat(blog.name);
-				});
-
-				res.send(200, out);
-			});
-		});
+		res.redirect(AUTHORIZE_URL.concat('?oauth_token=').concat(requestToken));
 	});
 });
+
+app.get('/tumblr_cb', function (req, res) {
+	if (!req.session.oauth) {
+		console.log('No OAuth to verify, bailing out.');
+		return res.send(500, 'Something went horribly wrong with your OAuth session.');
+	}
+
+	req.session.oauth.verifier = req.query.oauth_verifier;
+	
+	var sessionOAuth = req.session.oauth;
+
+	oa.getOAuthAccessToken(sessionOAuth.requestToken, sessionOAuth.requestTokenSecret, sessionOAuth.verifier, function (error, accessToken, accessTokenSecret, results) {
+		if (error) {
+			console.log('OAuthAccess Error:', error);
+			return res.send(500, 'Something went horribly wrong with OAuthAccess.');
+		}
+
+		req.session.oauth.accessToken = accessToken;
+		req.session.oauth.accessTokenSecret = accessTokenSecret;
+		res.redirect('/dashboard');
+	});
+});
+
+app.get('/dashboard', function (req, res) {
+	res.send(200, 'Welcome to tumtum.');
+});
+
 
 app.listen(3333);
 
