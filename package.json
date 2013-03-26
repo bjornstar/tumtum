@@ -1,7 +1,7 @@
 {
     "name": "tumtum",
     "description": "Some sort of tumblr app.",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "Bjorn Stromberg <bjorn@bjornstar.com>",
     "maintainers": [{
         "name": "Bjorn Stromberg",
@@ -12,7 +12,8 @@
     "dependencies": {
         "tumblr.js": "*",
         "oauth": "*",
-        "express": "*"
+        "express": "*",
+        "mongodb": "*"
     },
     "license": {
         "type": "MIT",

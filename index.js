@@ -1,16 +1,34 @@
+var util = require('util');
+
 var tumblr = require('tumblr.js');
 var OAuth = require('oauth').OAuth;
 var express = require('express');
+var mongodb = require('mongodb');
 
 var REQUEST_TOKEN_URL = "http://www.tumblr.com/oauth/request_token";
 var AUTHORIZE_URL = "http://www.tumblr.com/oauth/authorize";
 var ACCESS_TOKEN_URL = "http://www.tumblr.com/oauth/access_token";
 
-var config = require('./config.json');
+var config = require('./config');
+var package = require('./package.json');
+
+console.log('Started', package.name, 'v' + package.version);
+
+var dbServer = new mongodb.Server(config.mongo.host, config.mongo.port);
+var db = new mongodb.Db(config.mongo.database, dbServer, {w:1});
+var users = db.collection('users');
+
+db.open(function (err) {
+	if (err) {
+		return console.log('db.open Error:', err);
+	}
+
+	console.log('db.open successful.');
+});
 
 var oa = new OAuth(REQUEST_TOKEN_URL, ACCESS_TOKEN_URL, config.consumerKey, config.consumerSecret, '1.0', null, 'HMAC-SHA1');
 
-var client;
+var sessionMap = {};
 
 var app = express();
 
@@ -67,8 +85,13 @@ app.get('/tumblr_cb', function (req, res) {
 			return res.send(500, 'Something went horribly wrong with OAuthAccess.');
 		}
 
+		delete req.session.oauth.verifier;
+		delete req.session.oauth.requestToken;
+		delete req.session.oauth.requestTokenSecret;
+
 		req.session.oauth.accessToken = accessToken;
 		req.session.oauth.accessTokenSecret = accessTokenSecret;
+
 		res.redirect('/dashboard');
 	});
 });
@@ -88,6 +111,7 @@ app.get('/dashboard', checkOAuth, function (req, res) {
 	client.userInfo(function (error, data) {
 		res.send(200, 'Welcome to tumtum, ' + data.user.name + '.');
 	});
+	console.log(util.inspect(req.session));
 });
 
 
